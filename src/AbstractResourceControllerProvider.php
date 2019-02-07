@@ -1,6 +1,6 @@
 <?php
 
-namespace Shortcodes\Jwt;
+namespace Shortcodes\AbstractResourceController;
 
 use Illuminate\Support\ServiceProvider;
 
