@@ -12,13 +12,6 @@
   "require": {
     "php": ">=7.0.0"
   },
-  "extra": {
-    "laravel": {
-      "providers": [
-        "Shortcodes\\AbstractResourceController\\AbstractResourceControllerProvider"
-      ]
-    }
-  },
   "autoload": {
     "psr-4": {
       "Shortcodes\\AbstractResourceController\\": "src/"

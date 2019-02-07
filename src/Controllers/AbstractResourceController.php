@@ -47,7 +47,7 @@ abstract class AbstractResourceController extends Controller
             return $resourceClass::collection($searchResult['data'])->additional(['meta' => $searchResult['meta']]);
         }
 
-        return $resourceClass::collection($searchResult);
+        return $resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult);
     }
 
 
