@@ -1,0 +1,27 @@
+{
+  "name": "shortcodes/abstract-resource-controller",
+  "description": "Abstract controller with full CRUD used by single entity action",
+  "license": "mit",
+  "authors": [
+    {
+      "name": "Roman Szymanski",
+      "email": "roman.szymanski@shortcodes.pl"
+    }
+  ],
+  "minimum-stability": "stable",
+  "require": {
+    "php": ">=7.0.0"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Shortcodes\\AbstractResourceController\\AbstractResourceControllerProvider"
+      ]
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "Shortcodes\\AbstractResourceController\\": "src/"
+    }
+  }
+}
