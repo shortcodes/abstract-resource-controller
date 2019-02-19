@@ -132,7 +132,7 @@ abstract class AbstractResourceController extends Controller
 
     private function getResourceClass($modelClassName)
     {
-        return 'App\Http\Resources' . '\\' . $modelClassName . 'Resource';
+        return 'App\Http\Resources' . '\\' . ucfirst($modelClassName) . 'Resource';
     }
 
     private function getRequestClass($modelClassName)
