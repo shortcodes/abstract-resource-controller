@@ -7,21 +7,29 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Shortcodes\AbstractResourceController\Resources\DefaultResource;
 
 abstract class AbstractResourceController extends Controller
 {
-
-    private $modelClassName;
+    protected $modelClassName;
+    protected $resourceClass;
 
     public function __construct(Request $request)
     {
-        $this->modelClassName = $this->getModelClassName($this->model);
-
         if (!Route::getCurrentRoute()) {
             return;
         }
 
-        $requestClass = $this->getRequestClass($this->modelClassName);
+        $this->modelClassName = $this->model;
+        $resourceClass = $this->getResourceClass($this->modelClassName);
+
+        if (!class_exists($resourceClass)) {
+            $resourceClass = DefaultResource::class;
+        }
+
+        $this->resourceClass = $resourceClass;
+
+        $requestClass = $this->getRequestClass($this->model);
 
         if (class_exists($requestClass)) {
             app($requestClass);
@@ -37,17 +45,14 @@ abstract class AbstractResourceController extends Controller
     public function index()
     {
         $searchResult = null;
-        $resourceClass = $this->getResourceClass($this->modelClassName);
 
-        if (method_exists($this->model, "search")) {
-            $searchResult = $this->model::search(request());
+        if (method_exists($this->model, "searchQuery")) {
+            $searchResult = $this->model::searchQuery(request());
+        } elseif (method_exists($this->model, "search") && request()->has('query')) {
+            $searchResult = $this->model::search(request()->get('query'));
         }
 
-        if (isset($searchResult['data']) && isset($searchResult['meta'])) {
-            return $resourceClass::collection($searchResult['data'])->additional(['meta' => $searchResult['meta']]);
-        }
-
-        return $resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult);
+        return $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult);
     }
 
 
@@ -61,13 +66,8 @@ abstract class AbstractResourceController extends Controller
 
             DB::commit();
 
-            $resourceClass = $this->getResourceClass($this->modelClassName);
+            return new $this->resourceClass($model);
 
-            if (class_exists($resourceClass)) {
-                return new $resourceClass($model);
-            }
-
-            return $model;
         } catch (\Exception $e) {
             return $this->responseWithError($e);
         }
@@ -77,13 +77,8 @@ abstract class AbstractResourceController extends Controller
     public function show()
     {
         $model = request()->route($this->modelClassName);
-        $resourceClass = $this->getResourceClass($this->modelClassName);
 
-        if (class_exists($resourceClass)) {
-            return new $resourceClass($model);
-        }
-
-        return $model;
+        return new $this->resourceClass($model);
     }
 
     public function update()
@@ -98,13 +93,8 @@ abstract class AbstractResourceController extends Controller
 
             DB::commit();
 
-            $resourceClass = $this->getResourceClass($this->modelClassName);
+            return new $this->resourceClass($updatedModel);
 
-            if (class_exists($resourceClass)) {
-                return new $resourceClass($updatedModel);
-            }
-
-            return $updatedModel;
 
         } catch (\Exception $e) {
             return $this->responseWithError($e);
@@ -138,11 +128,6 @@ abstract class AbstractResourceController extends Controller
     private function getRequestClass($modelClassName)
     {
         return 'App\Http\Requests' . '\\' . ucfirst(str_plural($modelClassName)) . '\\' . ucfirst(Route::getCurrentRoute()->getActionMethod()) . ucfirst($modelClassName) . 'Request';
-    }
-
-    private function getModelClassName($model)
-    {
-        return strtolower(join('', array_slice(explode('\\', $model), -1)));
     }
 
     public function responseWithError(\Exception $e)
