@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Shortcodes\AbstractResourceController\Resources\DefaultResource;
+use Illuminate\Support\Str;
+
 
 abstract class AbstractResourceController extends Controller
 {
@@ -20,7 +22,8 @@ abstract class AbstractResourceController extends Controller
             return;
         }
 
-        $this->modelClassName = $this->model;
+        $this->modelClassName = Str::snake((new \ReflectionClass($this->model))->getShortName());
+
         $resourceClass = $this->getResourceClass($this->modelClassName);
 
         if (!class_exists($resourceClass)) {
@@ -84,6 +87,7 @@ abstract class AbstractResourceController extends Controller
     public function update()
     {
         try {
+
 
             $model = request()->route($this->modelClassName);
 
