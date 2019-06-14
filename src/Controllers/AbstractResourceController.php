@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 abstract class AbstractResourceController extends Controller
 {
     protected $modelClassName;
+    protected $modelClass;
     protected $resourceClass;
 
     public function __construct(Request $request)
@@ -22,9 +23,10 @@ abstract class AbstractResourceController extends Controller
             return;
         }
 
-        $this->modelClassName = Str::snake((new \ReflectionClass($this->model))->getShortName());
+        $this->modelClass = (new \ReflectionClass($this->model))->getShortName();
+        $this->modelClassNameSnake = Str::snake((new \ReflectionClass($this->model))->getShortName());
 
-        $resourceClass = $this->getResourceClass($this->modelClassName);
+        $resourceClass = $this->getResourceClass($this->modelClass);
 
         if (!class_exists($resourceClass)) {
             $resourceClass = DefaultResource::class;
@@ -32,7 +34,7 @@ abstract class AbstractResourceController extends Controller
 
         $this->resourceClass = $resourceClass;
 
-        $requestClass = $this->getRequestClass($this->model);
+        $requestClass = $this->getRequestClass($this->modelClass);
 
         if (class_exists($requestClass)) {
             app($requestClass);
@@ -79,7 +81,7 @@ abstract class AbstractResourceController extends Controller
 
     public function show()
     {
-        $model = request()->route($this->modelClassName);
+        $model = request()->route($this->modelClassNameSnake);
 
         return new $this->resourceClass($model);
     }
@@ -89,7 +91,7 @@ abstract class AbstractResourceController extends Controller
         try {
 
 
-            $model = request()->route($this->modelClassName);
+            $model = request()->route($this->modelClassNameSnake);
 
             DB::beginTransaction();
 
@@ -109,7 +111,7 @@ abstract class AbstractResourceController extends Controller
     {
         try {
 
-            $model = request()->route($this->modelClassName);
+            $model = request()->route($this->modelClassNameSnake);
 
             DB::beginTransaction();
 
