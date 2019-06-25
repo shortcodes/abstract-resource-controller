@@ -53,11 +53,20 @@ abstract class AbstractResourceController extends Controller
 
         if (method_exists($this->model, "searchQuery")) {
             $searchResult = $this->model::searchQuery(request());
-        } elseif (method_exists($this->model, "search") && request()->has('query')) {
-            $searchResult = $this->model::search(request()->get('query'));
+        } elseif (method_exists($this->model, "search")) {
+            $searchResult = $this->model::search(request());
         }
 
-        return $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult);
+        if ($searchResult !== null) {
+            $searchResult['data'] = $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult['data']);
+        }
+
+        if ($searchResult === null) {
+            $searchResult = $this->resourceClass::collection($this->model::paginate());
+        }
+
+        return $searchResult;
+
     }
 
 
