@@ -51,6 +51,10 @@ abstract class AbstractResourceController extends Controller
     {
         $searchResult = null;
 
+        if (in_array(\ScoutElastic\Searchable::class, class_uses($this->model)) && method_exists($this->model, "scout")) {
+            return $this->resourceClass::collection($this->model::scout(request())->paginate(request()->get('length', 10), 'page', request()->get('page', 0)));
+        }
+
         if (method_exists($this->model, "searchQuery")) {
             $searchResult = $this->model::searchQuery(request());
         } elseif (method_exists($this->model, "search")) {
