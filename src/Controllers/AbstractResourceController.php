@@ -28,9 +28,6 @@ abstract class AbstractResourceController extends Controller
 
         $resourceClass = $this->getResourceClass($this->modelClass);
 
-        if (!class_exists($resourceClass)) {
-            $resourceClass = DefaultResource::class;
-        }
 
         $this->resourceClass = $resourceClass;
 
@@ -52,7 +49,7 @@ abstract class AbstractResourceController extends Controller
         $searchResult = null;
 
         if (in_array(\ScoutElastic\Searchable::class, class_uses($this->model)) && method_exists($this->model, "scout")) {
-            return $this->resourceClass::collection($this->model::scout(request())->paginate(request()->get('length', 10), 'page', request()->get('page', 0)));
+            return $this->resourceClass::collection($this->model::scout(request())->paginate(request()->get('length', 10), 'page', request()->get('page', 0)), true);
         }
 
         if (method_exists($this->model, "searchQuery")) {
@@ -63,15 +60,15 @@ abstract class AbstractResourceController extends Controller
 
 
         if ($searchResult !== null && !isset($searchResult['data'])) {
-            return $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult);
+            return $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult, true);
         }
 
         if ($searchResult !== null) {
-            $searchResult['data'] = $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult['data']);
+            $searchResult['data'] = $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult['data'], true);
         }
 
         if ($searchResult === null) {
-            $searchResult = $this->resourceClass::collection($this->model::paginate());
+            $searchResult = $this->resourceClass::collection($this->model::paginate(), true);
         }
 
         return $searchResult;
@@ -144,14 +141,26 @@ abstract class AbstractResourceController extends Controller
         }
     }
 
-    private function getResourceClass($modelClassName)
+    private function getResourceClass($modelClassName, $forList = false)
     {
-        return 'App\Http\Resources' . '\\' . ucfirst($modelClassName) . 'Resource';
+        $resourceClass = 'App\Http\Resources' . (request()->header('X-Web-Call') ? 'ForWeb' : '') . '\\' . ucfirst($modelClassName) . ($forList ? 'List' : '') . 'Resource';
+
+        if (!class_exists($resourceClass) && $forList) {
+            $resourceClass = 'App\Http\Resources' . (request()->header('X-Web-Call') ? 'ForWeb' : '') . '\\' . ucfirst($modelClassName) . 'Resource';
+        }
+
+        if (class_exists($resourceClass)) {
+            return $resourceClass;
+        }
+
+        return DefaultResource::class;
+
     }
 
     private function getRequestClass($modelClassName)
     {
         return 'App\Http\Requests' . '\\' . ucfirst(str_plural($modelClassName)) . '\\' . ucfirst(Route::getCurrentRoute()->getActionMethod()) . ucfirst($modelClassName) . 'Request';
+
     }
 
     public function responseWithError(\Exception $e)
