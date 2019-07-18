@@ -26,8 +26,7 @@ abstract class AbstractResourceController extends Controller
         $this->modelClass = (new \ReflectionClass($this->model))->getShortName();
         $this->modelClassNameSnake = Str::snake((new \ReflectionClass($this->model))->getShortName());
 
-        $resourceClass = $this->getResourceClass($this->modelClass);
-
+        $resourceClass = $this->getResourceClass($this->modelClass, true);
 
         $this->resourceClass = $resourceClass;
 
@@ -49,7 +48,7 @@ abstract class AbstractResourceController extends Controller
         $searchResult = null;
 
         if (in_array(\ScoutElastic\Searchable::class, class_uses($this->model)) && method_exists($this->model, "scout")) {
-            return $this->resourceClass::collection($this->model::scout(request())->paginate(request()->get('length', 10), 'page', request()->get('page', 0)), true);
+            return $this->resourceClass::collection($this->model::scout(request())->paginate(request()->get('length', 10), 'page', request()->get('page', 0)));
         }
 
         if (method_exists($this->model, "searchQuery")) {
@@ -60,15 +59,15 @@ abstract class AbstractResourceController extends Controller
 
 
         if ($searchResult !== null && !isset($searchResult['data'])) {
-            return $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult, true);
+            return $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult);
         }
 
         if ($searchResult !== null) {
-            $searchResult['data'] = $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult['data'], true);
+            $searchResult['data'] = $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult['data']);
         }
 
         if ($searchResult === null) {
-            $searchResult = $this->resourceClass::collection($this->model::paginate(), true);
+            $searchResult = $this->resourceClass::collection($this->model::paginate());
         }
 
         return $searchResult;
