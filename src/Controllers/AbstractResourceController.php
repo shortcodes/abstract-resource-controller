@@ -16,6 +16,7 @@ abstract class AbstractResourceController extends Controller
     protected $modelClassName;
     protected $modelClass;
     protected $resourceClass;
+    protected $modelObject;
 
     public function __construct(Request $request)
     {
@@ -25,6 +26,7 @@ abstract class AbstractResourceController extends Controller
 
         $this->modelClass = (new \ReflectionClass($this->model))->getShortName();
         $this->modelClassNameSnake = Str::snake((new \ReflectionClass($this->model))->getShortName());
+        $this->modelObject = new $this->model();
 
         $resourceClass = $this->getResourceClass($this->modelClass, true);
 
@@ -48,7 +50,19 @@ abstract class AbstractResourceController extends Controller
         $searchResult = null;
 
         if (in_array(\ScoutElastic\Searchable::class, class_uses($this->model)) && method_exists($this->model, "scout")) {
-            return $this->resourceClass::collection($this->model::scout(request())->paginate(request()->get('length', 10), 'page', request()->get('page', 0)));
+
+            $scout = $this->model::scout(request());
+            $collection = $this->resourceClass::collection($scout->paginate(request()->get('length', 10), 'page', request()->get('page', 0)));
+
+            if (!empty($this->modelObject->aggregateRules)) {
+                $aggregations = $scout->aggregate();
+                $collection->additional(['meta' => [
+                    'aggregations' => $this->getAggregates($aggregations),
+                ]]);
+            }
+
+
+            return $collection;
         }
 
         if (method_exists($this->model, "searchQuery")) {
@@ -172,5 +186,17 @@ abstract class AbstractResourceController extends Controller
                 'An error ocurred. Please contact administrator.' :
                 $e->getMessage()
         ], 500);
+    }
+
+    public function getAggregates($aggregations)
+    {
+        $result = [];
+
+        foreach ($aggregations['aggregations'] as $k => $aggregation) {
+            $collection = collect($aggregations['aggregations'][$k]['buckets'])->pluck('doc_count', 'key')->toArray();
+            $result[$k] = $collection;
+        }
+
+        return $result;
     }
 }
