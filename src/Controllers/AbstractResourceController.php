@@ -28,9 +28,7 @@ abstract class AbstractResourceController extends Controller
         $this->modelClassNameSnake = Str::snake((new \ReflectionClass($this->model))->getShortName());
         $this->modelObject = new $this->model();
 
-        $resourceClass = $this->getResourceClass($this->modelClass, true);
-
-        $this->resourceClass = $resourceClass;
+        $this->resourceClass = $this->getResourceClass($this->modelClass);
 
         $requestClass = $this->getRequestClass($this->modelClass);
 
@@ -49,15 +47,18 @@ abstract class AbstractResourceController extends Controller
     {
         $searchResult = null;
 
+        $this->resourceClass = $this->getResourceClass($this->modelClass, true);
+
         if (in_array(\ScoutElastic\Searchable::class, class_uses($this->model)) && method_exists($this->model, "scout")) {
 
             $scout = $this->model::scout(request());
+
             $collection = $this->resourceClass::collection($scout->paginate(request()->get('length', 10), 'page', request()->get('page', 0)));
 
             if (!empty($this->modelObject->aggregateRules)) {
-                $aggregations = $scout->aggregate();
+                $aggregats = $scout->aggregate();
                 $collection->additional(['meta' => [
-                    'aggregations' => $this->getAggregates($aggregations),
+                    'aggregates' => $this->getAggregates($aggregats),
                 ]]);
             }
 
@@ -81,7 +82,7 @@ abstract class AbstractResourceController extends Controller
         }
 
         if ($searchResult === null) {
-            $searchResult = $this->resourceClass::collection($this->model::paginate(request()->get('length', 10), $columns = ['*'], $pageName = 'page', request()->get('page', 0)));
+            $searchResult = $this->resourceClass::collection($this->model::paginate());
         }
 
         return $searchResult;
@@ -102,6 +103,7 @@ abstract class AbstractResourceController extends Controller
             return new $this->resourceClass($model);
 
         } catch (\Exception $e) {
+            logger($e);
             return $this->responseWithError($e);
         }
 
@@ -188,13 +190,16 @@ abstract class AbstractResourceController extends Controller
         ], 500);
     }
 
-    public function getAggregates($aggregations)
+    public function getAggregates($aggregates)
     {
         $result = [];
 
-        foreach ($aggregations['aggregations'] as $k => $aggregation) {
-            $collection = collect($aggregations['aggregations'][$k]['buckets'])->pluck('doc_count', 'key')->toArray();
+        foreach ($aggregates['aggregations'] as $k => $aggregation) {
+
+            $collection = collect($aggregates['aggregations'][$k]['buckets'])->pluck('doc_count', 'key')->toArray();
+
             $result[$k] = $collection;
+
         }
 
         return $result;
