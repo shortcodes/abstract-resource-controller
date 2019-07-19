@@ -81,7 +81,7 @@ abstract class AbstractResourceController extends Controller
         }
 
         if ($searchResult === null) {
-            $searchResult = $this->resourceClass::collection($this->model::paginate());
+            $searchResult = $this->resourceClass::collection($this->model::paginate(request()->get('length', 10), 'page', request()->get('page', 0)));
         }
 
         return $searchResult;
