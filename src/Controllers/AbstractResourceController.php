@@ -54,9 +54,16 @@ abstract class AbstractResourceController extends Controller
             $length = request()->get('length', 10);
             $scout = $this->model::scout(request());
 
-            return $this->resourceClass::collection(
+            $collection = $this->resourceClass::collection(
                 $scout->paginate($length, 'page', $page)
             );
+
+            if (method_exists($this->model, "addMeta")) {
+                $collection->additional(['meta' => $this->modelObject->addMeta(request(), ['scout' => $scout])]);
+            }
+
+            return $collection;
+
         }
 
         if (method_exists($this->model, "searchQuery")) {
@@ -168,9 +175,13 @@ abstract class AbstractResourceController extends Controller
             $resourceClass = 'App\Http\Resources' . '\\' . ucfirst($modelClassName) . ($forList ? 'List' : '') . 'Resource';
         } elseif (!class_exists($resourceClass)) {
             $resourceClass = 'App\Http\Resources' . '\\' . ucfirst($modelClassName) . 'Resource';
-        } else {
-            return DefaultResource::class;
         }
+
+        if (class_exists($resourceClass)) {
+            return $resourceClass;
+        }
+
+        return DefaultResource::class;
     }
 
     private function getRequestClass($modelClassName)
