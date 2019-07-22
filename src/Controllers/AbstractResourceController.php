@@ -4,7 +4,9 @@ namespace Shortcodes\AbstractResourceController\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Shortcodes\AbstractResourceController\Resources\DefaultResource;
@@ -28,7 +30,7 @@ abstract class AbstractResourceController extends Controller
         $this->modelClassNameSnake = Str::snake((new \ReflectionClass($this->model))->getShortName());
         $this->modelObject = new $this->model();
 
-        $this->resourceClass = $this->getResourceClass($this->modelClass);
+        $this->resourceClass = $this->getResourceClass($this->modelClass, strpos(Route::currentRouteAction(), 'index') !== false);
 
         $requestClass = $this->getRequestClass($this->modelClass);
 
@@ -47,23 +49,14 @@ abstract class AbstractResourceController extends Controller
     {
         $searchResult = null;
 
-        $this->resourceClass = $this->getResourceClass($this->modelClass, true);
-
         if (in_array(\ScoutElastic\Searchable::class, class_uses($this->model)) && method_exists($this->model, "scout")) {
-
+            $page = request()->get('page', 0);
+            $length = request()->get('length', 10);
             $scout = $this->model::scout(request());
 
-            $collection = $this->resourceClass::collection($scout->paginate(request()->get('length', 10), 'page', request()->get('page', 0)));
-
-            if (!empty($this->modelObject->aggregateRules)) {
-                $aggregats = $scout->aggregate();
-                $collection->additional(['meta' => [
-                    'aggregates' => $this->getAggregates($aggregats),
-                ]]);
-            }
-
-
-            return $collection;
+            return $this->resourceClass::collection(
+                $scout->paginate($length, 'page', $page)
+            );
         }
 
         if (method_exists($this->model, "searchQuery")) {
@@ -71,7 +64,6 @@ abstract class AbstractResourceController extends Controller
         } elseif (method_exists($this->model, "search")) {
             $searchResult = $this->model::search(request());
         }
-
 
         if ($searchResult !== null && !isset($searchResult['data'])) {
             return $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult);
@@ -156,20 +148,29 @@ abstract class AbstractResourceController extends Controller
         }
     }
 
-    private function getResourceClass($modelClassName, $forList = false)
+    private function getResourceClass($modelClassName, $forList = false, $force = false)
     {
         $resourceClass = 'App\Http\Resources' . (request()->header('X-Web-Call') ? 'ForWeb' : '') . '\\' . ucfirst($modelClassName) . ($forList ? 'List' : '') . 'Resource';
 
-        if (!class_exists($resourceClass) && $forList) {
-            $resourceClass = 'App\Http\Resources' . (request()->header('X-Web-Call') ? 'ForWeb' : '') . '\\' . ucfirst($modelClassName) . 'Resource';
-        }
-
-        if (class_exists($resourceClass)) {
+        if ($force && class_exists($resourceClass)) {
             return $resourceClass;
+        } elseif ($force) {
+            return DefaultResource::class;
         }
 
-        return DefaultResource::class;
+        $resourceClass = 'App\Http\Resources' . (request()->header('X-Web-Call') ? 'ForWeb' : '') . '\\' . ucfirst($modelClassName) . ($forList ? 'List' : '') . 'Resource';
 
+        if (!class_exists($resourceClass)) {
+            $resourceClass = 'App\Http\Resources' . (request()->header('X-Web-Call') ? 'ForWeb' : '') . '\\' . ucfirst($modelClassName) . 'Resource';
+        } elseif (!class_exists($resourceClass)) {
+            $resourceClass = 'App\Http\Resources' . (request()->header('X-Web-Call') ? 'ForWeb' : '') . '\\' . ucfirst($modelClassName) . ($forList ? 'List' : '') . 'Resource';
+        } elseif (!class_exists($resourceClass)) {
+            $resourceClass = 'App\Http\Resources' . '\\' . ucfirst($modelClassName) . ($forList ? 'List' : '') . 'Resource';
+        } elseif (!class_exists($resourceClass)) {
+            $resourceClass = 'App\Http\Resources' . '\\' . ucfirst($modelClassName) . 'Resource';
+        } else {
+            return DefaultResource::class;
+        }
     }
 
     private function getRequestClass($modelClassName)
@@ -188,20 +189,5 @@ abstract class AbstractResourceController extends Controller
                 'An error ocurred. Please contact administrator.' :
                 $e->getMessage()
         ], 500);
-    }
-
-    public function getAggregates($aggregates)
-    {
-        $result = [];
-
-        foreach ($aggregates['aggregations'] as $k => $aggregation) {
-
-            $collection = collect($aggregates['aggregations'][$k]['buckets'])->pluck('doc_count', 'key')->toArray();
-
-            $result[$k] = $collection;
-
-        }
-
-        return $result;
     }
 }
