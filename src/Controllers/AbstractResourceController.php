@@ -30,8 +30,10 @@ abstract class AbstractResourceController extends Controller
         $this->modelClassNameSnake = Str::snake((new \ReflectionClass($this->model))->getShortName());
         $this->modelObject = new $this->model();
 
-        $this->resourceClass = $this->getResourceClass($this->modelClass, strpos(Route::currentRouteAction(), 'index') !== false);
-
+        if (!$this->resourceClass) {
+            $this->resourceClass = $this->getResourceClass($this->modelClass, strpos(Route::currentRouteAction(), 'index') !== false);
+        }
+        
         $requestClass = $this->getRequestClass($this->modelClass);
 
         if (class_exists($requestClass)) {
