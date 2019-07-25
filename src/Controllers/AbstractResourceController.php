@@ -31,7 +31,7 @@ abstract class AbstractResourceController extends Controller
         if (!$this->resourceClass) {
             $this->resourceClass = $this->getResourceClass($this->modelClass, strpos(Route::currentRouteAction(), 'index') !== false);
         }
-        
+
         $requestClass = $this->getRequestClass($this->modelClass);
 
         if (class_exists($requestClass)) {
@@ -81,7 +81,9 @@ abstract class AbstractResourceController extends Controller
         }
 
         if ($searchResult === null) {
-            $searchResult = $this->resourceClass::collection($this->model::paginate(request()->get('length', 10), ['*'], 'page', request()->get('page', 0)));
+            $searchResult = $this->resourceClass::collection(
+                $this->model::orderBy(request()->get('sort_by', 'id'), request()->get('sort_direction', 'desc'))->paginate(request()->get('length', 10), ['*'], 'page', request()->get('page', 0))
+            );
         }
 
         return $searchResult;
