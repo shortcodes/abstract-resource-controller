@@ -76,6 +76,10 @@ abstract class AbstractResourceController extends Controller
             return $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult);
         }
 
+        if ($searchResult !== null && isset($searchResult['data']) && (is_a($searchResult['data'], 'Illuminate\Pagination\LengthAwarePaginator'))) {
+            return $this->resourceClass::collection($searchResult['data']);
+        }
+        
         if ($searchResult !== null) {
             $searchResult['data'] = $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult['data']);
         }
