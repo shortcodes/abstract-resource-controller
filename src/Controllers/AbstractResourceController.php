@@ -13,10 +13,10 @@ use Illuminate\Support\Str;
 
 abstract class AbstractResourceController extends Controller
 {
-    protected $modelClassName;
-    protected $modelClass;
+    protected $modelName;
     protected $resourceClass;
-    protected $modelObject;
+    protected $object;
+    protected $model;
 
     public function __construct(Request $request)
     {
@@ -24,15 +24,14 @@ abstract class AbstractResourceController extends Controller
             return;
         }
 
-        $this->modelClass = (new \ReflectionClass($this->model))->getShortName();
-        $this->modelClassNameSnake = Str::snake((new \ReflectionClass($this->model))->getShortName());
-        $this->modelObject = new $this->model();
+        $this->object = new $this->model();
+        $this->modelName = class_basename($this->object);
 
         if (!$this->resourceClass) {
-            $this->resourceClass = $this->getResourceClass($this->modelClass, strpos(Route::currentRouteAction(), 'index') !== false);
+            $this->resourceClass = $this->getResourceClass($this->modelName, strpos(Route::currentRouteAction(), 'index') !== false);
         }
 
-        $requestClass = $this->getRequestClass($this->modelClass);
+        $requestClass = $this->getRequestClass($this->modelName);
 
         if (class_exists($requestClass)) {
             app($requestClass);
@@ -47,8 +46,6 @@ abstract class AbstractResourceController extends Controller
 
     public function index()
     {
-        $searchResult = null;
-
         if (in_array(\ScoutElastic\Searchable::class, class_uses($this->model)) && method_exists($this->model, "scout")) {
             $page = request()->get('page', 0);
             $length = request()->get('length', 10);
@@ -59,41 +56,32 @@ abstract class AbstractResourceController extends Controller
             );
 
             if (method_exists($this->model, "addMeta")) {
-                $collection->additional(['meta' => $this->modelObject->addMeta(request(), ['scout' => $scout])]);
+                $collection->additional(['meta' => $this->object->addMeta(request(), ['scout' => $scout])]);
             }
 
             return $collection;
-
         }
 
-        if (method_exists($this->model, "searchQuery")) {
-            $searchResult = $this->model::searchQuery(request());
-        } elseif (method_exists($this->model, "search")) {
-            $searchResult = $this->model::search(request());
+        $searchQuery = $this->model::query();
+
+        if (method_exists($this->model, "search")) {
+            $searchQuery = $this->model::search(request());
         }
 
-        if ($searchResult !== null && !isset($searchResult['data'])) {
-            return $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult);
+        if (request()->get('sort_by') && request()->get('sort_direction')) {
+            $searchQuery->orderBy(request()->get('sort_by', 'id'), request()->get('sort_direction', 'desc'));
         }
 
-        if ($searchResult !== null && isset($searchResult['data']) && (is_a($searchResult['data'], 'Illuminate\Pagination\LengthAwarePaginator'))) {
-            return $this->resourceClass::collection($searchResult['data']);
-        }
-        
-        if ($searchResult !== null) {
-            $searchResult['data'] = $this->resourceClass::collection($searchResult === null ? $this->model::all() : $searchResult['data']);
-        }
+        $result = $searchQuery->paginate(request()->get('length', 10), ['*'], 'page', request()->get('page', 0));
 
-        if ($searchResult === null) {
-            $searchResult = $this->resourceClass::collection(
-                $this->model::orderBy(request()->get('sort_by', 'id'), request()->get('sort_direction', 'desc'))->paginate(request()->get('length', 10), ['*'], 'page', request()->get('page', 0))
-            );
+        $collection = $this->resourceClass::collection($result);
+
+        if (method_exists($this->model, "searchMeta")) {
+            $collection->additional(['meta' => $this->object->addMeta(request())]);
         }
 
-        return $searchResult;
-
+        return $collection;
     }
-
 
     public function store()
     {
@@ -116,8 +104,7 @@ abstract class AbstractResourceController extends Controller
 
     public function show()
     {
-        $model = request()->route($this->modelClassNameSnake);
-
+        $model = request()->route(Str::snake($this->modelName));
         return new $this->resourceClass($model);
     }
 
@@ -125,8 +112,7 @@ abstract class AbstractResourceController extends Controller
     {
         try {
 
-
-            $model = request()->route($this->modelClassNameSnake);
+            $model = request()->route(Str::snake($this->modelName));
 
             DB::beginTransaction();
 
@@ -146,7 +132,7 @@ abstract class AbstractResourceController extends Controller
     {
         try {
 
-            $model = request()->route($this->modelClassNameSnake);
+            $model = request()->route(Str::snake($this->modelName));
 
             DB::beginTransaction();
 
@@ -193,7 +179,6 @@ abstract class AbstractResourceController extends Controller
     private function getRequestClass($modelClassName)
     {
         return 'App\Http\Requests' . '\\' . ucfirst(str_plural($modelClassName)) . '\\' . ucfirst(Route::getCurrentRoute()->getActionMethod()) . ucfirst($modelClassName) . 'Request';
-
     }
 
     public function responseWithError(\Exception $e)
