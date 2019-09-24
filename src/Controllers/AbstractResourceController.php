@@ -178,7 +178,7 @@ abstract class AbstractResourceController extends Controller
 
     private function getRequestClass($modelClassName)
     {
-        return 'App\Http\Requests' . '\\' . ucfirst(Str::plutal($modelClassName)) . '\\' . ucfirst(Route::getCurrentRoute()->getActionMethod()) . ucfirst($modelClassName) . 'Request';
+        return 'App\Http\Requests' . '\\' . ucfirst(Str::plural($modelClassName)) . '\\' . ucfirst(Route::getCurrentRoute()->getActionMethod()) . ucfirst($modelClassName) . 'Request';
     }
 
     public function responseWithError(\Exception $e)
