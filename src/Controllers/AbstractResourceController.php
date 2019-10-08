@@ -76,7 +76,7 @@ abstract class AbstractResourceController extends Controller
 
         $collection = $this->resourceClass::collection($result);
 
-        if (method_exists($this->model, "searchMeta")) {
+        if (method_exists($this->model, "addMeta")) {
             $collection->additional(['meta' => $this->object->addMeta(request())]);
         }
 
