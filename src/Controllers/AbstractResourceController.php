@@ -64,7 +64,7 @@ abstract class AbstractResourceController extends Controller
 
         $searchQuery = $this->model::query();
 
-        if (method_exists($this->model, "search")) {
+        if (method_exists($this->model, "search") && in_array(\ScoutElastic\Searchable::class, class_uses($this->model))) {
             $searchQuery = $this->model::search(request());
         }
 
