@@ -17,6 +17,7 @@ abstract class AbstractResourceController extends Controller
     protected $resourceClass;
     protected $object;
     protected $model;
+    protected $scoutEnabled = true;
 
     public function __construct(Request $request)
     {
@@ -46,7 +47,7 @@ abstract class AbstractResourceController extends Controller
 
     public function index()
     {
-        if (in_array(\ScoutElastic\Searchable::class, class_uses($this->model)) && method_exists($this->model, "scout")) {
+        if ($this->scoutEnabled && in_array(\ScoutElastic\Searchable::class, class_uses($this->model)) && method_exists($this->model, "scout")) {
             $page = request()->get('page', 0);
             $length = request()->get('length', 10);
             $scout = $this->model::scout(request());
