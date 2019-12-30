@@ -18,6 +18,7 @@ abstract class AbstractResourceController extends Controller
     protected $object;
     protected $model;
     protected $disableScout = false;
+    protected $pagination = true;
 
     public function __construct(Request $request)
     {
@@ -73,7 +74,15 @@ abstract class AbstractResourceController extends Controller
             $searchQuery->orderBy(request()->get('sort_by', 'id'), request()->get('sort_direction', 'desc'));
         }
 
-        $result = $searchQuery->paginate(request()->get('length', 10), ['*'], 'page', request()->get('page', 0));
+        $result = null;
+
+        if ($this->pagination) {
+            $result = $searchQuery->paginate(request()->get('length', 10), ['*'], 'page', request()->get('page', 0));
+        }
+
+        if (!$this->pagination) {
+            $result = $searchQuery->get();
+        }
 
         $collection = $this->resourceClass::collection($result);
 
