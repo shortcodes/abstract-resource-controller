@@ -26,6 +26,10 @@ abstract class AbstractResourceController extends Controller
             return;
         }
 
+        if (method_exists($this, "access")) {
+            $this->access();
+        }
+
         $this->object = new $this->model();
         $this->modelName = class_basename($this->object);
 
