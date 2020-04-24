@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use Shortcodes\AbstractResourceController\Resources\DefaultResource;
 use Illuminate\Support\Str;
+use Shortcodes\AbstractResourceController\Resources\DefaultResource;
 
 
 abstract class AbstractResourceController extends Controller
@@ -46,7 +46,8 @@ abstract class AbstractResourceController extends Controller
         $routeParameters = $request->route()->parameters();
 
         foreach ($routeParameters as $parameter => $routeParameter) {
-            $request->route()->setParameter($parameter, $this->model::findOrFail($routeParameter));
+            $model = Route::currentRouteAction() === 'show' && $this->object->usesSoftDelete() && $this->object->allowToShowTrashed ? $this->model::withTrashed() : $this->model::query();
+            $request->route()->setParameter($parameter, $model->findOrFail($routeParameter));
         }
     }
 
