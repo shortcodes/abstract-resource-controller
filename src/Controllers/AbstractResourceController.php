@@ -57,6 +57,7 @@ abstract class AbstractResourceController extends Controller
                     }
                 }
             }
+            $this->model::query();
             $request->route()->setParameter($parameter, $this->model::findOrFail($routeParameter));
         }
     }
