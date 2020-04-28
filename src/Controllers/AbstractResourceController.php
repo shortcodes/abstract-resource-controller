@@ -51,7 +51,7 @@ abstract class AbstractResourceController extends Controller
 
             if (isset($this->object->allowTrashedTo) && is_array($this->object->allowTrashedTo) && method_exists($this->object, 'usesSoftDelete') && $this->object->usesSoftDelete()) {
                 foreach ($this->object->allowTrashedTo as $method) {
-                    if ((strpos(Route::currentRouteAction(), $method)) !== false ) {
+                    if ((strpos(Route::currentRouteAction(), $method)) !== false) {
                         $model = $this->model::withTrashed();
                     }
                 }
