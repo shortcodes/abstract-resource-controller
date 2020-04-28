@@ -46,7 +46,7 @@ abstract class AbstractResourceController extends Controller
         $routeParameters = $request->route()->parameters();
 
         foreach ($routeParameters as $parameter => $routeParameter) {
-            $model = strpos(Route::currentRouteAction(), 'show') !== false && $this->object->usesSoftDelete() && $this->object->allowToShowTrashed ? $this->model::withTrashed() : $this->model::query();
+            $model = strpos(Route::currentRouteAction(), 'show') !== false && method_exists($this->object, 'usesSoftDelete') && $this->object->usesSoftDelete() && $this->object->allowToShowTrashed ? $this->model::withTrashed() : $this->model::query();
             $request->route()->setParameter($parameter, $model->findOrFail($routeParameter));
         }
     }
