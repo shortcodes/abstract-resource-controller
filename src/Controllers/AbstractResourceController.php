@@ -47,6 +47,8 @@ abstract class AbstractResourceController extends Controller
 
         foreach ($routeParameters as $parameter => $routeParameter) {
 
+            $model = $this->model::query();
+
             if (isset($this->object->allowTrashedTo) && is_array($this->object->allowTrashedTo)) {
                 $model = null;
                 foreach ($this->object->allowTrashedTo as $method) {
@@ -57,8 +59,7 @@ abstract class AbstractResourceController extends Controller
                     }
                 }
             }
-            $this->model::query();
-            $request->route()->setParameter($parameter, $this->model::findOrFail($routeParameter));
+            $request->route()->setParameter($parameter, $model->findOrFail($routeParameter));
         }
     }
 
