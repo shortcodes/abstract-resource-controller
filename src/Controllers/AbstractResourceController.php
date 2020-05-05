@@ -35,7 +35,7 @@ abstract class AbstractResourceController extends Controller
         $this->modelName = class_basename($this->object);
 
         if (!$this->resourceClass) {
-            $this->resourceClass = $this->getResourceClass($this->modelName, strpos(Route::currentRouteAction(), 'index') !== false);
+            $this->resourceClass = $this->getResourceClass($this->modelName, !request()->get('full') && strpos(Route::currentRouteAction(), 'index') !== false);
         }
 
         $requestClass = $this->getRequestClass($this->modelName);
