@@ -73,7 +73,7 @@ abstract class AbstractResourceController extends Controller
             }
 
             return cache()->remember('scout_query:' . md5($scout->toString()), $this->cacheable, function () use ($scout, $length, $page) {
-                return $this->getCollection($scout, $page, $length)->toArray(request());
+                return $this->getCollection($scout, $page, $length)->response(request())->getData(true);
             });
         }
 
