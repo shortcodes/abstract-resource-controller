@@ -18,6 +18,7 @@ abstract class AbstractResourceController extends Controller
     protected $object;
     protected $model;
     protected $disableScout = false;
+    protected $cacheable = false;
     protected $pagination = true;
 
     public function __construct(Request $request)
@@ -58,15 +59,13 @@ abstract class AbstractResourceController extends Controller
             $length = request()->get('length', 10);
             $scout = $this->model::scout(request());
 
-            $collection = $this->resourceClass::collection(
-                $scout->paginate($length, 'page', $page)
-            );
-
-            if (method_exists($this->model, "addMeta")) {
-                $collection->additional(['meta' => $this->object->addMeta(request(), ['scout' => $scout])]);
+            if (!$this->cacheable) {
+                return $this->getCollection($scout, $page, $length);
             }
 
-            return $collection;
+            return cache()->remember('scout_query:' . md5($scout->toString()), $this->cacheable, function () use ($scout, $length, $page) {
+                return $this->getCollection($scout, $page, $length)->toArray(request());
+            });
         }
 
         $searchQuery = $this->model::query();
@@ -206,5 +205,18 @@ abstract class AbstractResourceController extends Controller
                 'An error ocurred. Please contact administrator.' :
                 $e->getMessage()
         ], 500);
+    }
+
+    private function getCollection($scout, $page, $length)
+    {
+        $collection = $this->resourceClass::collection(
+            $scout->paginate($length, 'page', $page)
+        );
+
+        if (method_exists($this->model, "addMeta")) {
+            $collection->additional(['meta' => $this->object->addMeta(request(), ['scout' => $scout])]);
+        }
+
+        return $collection;
     }
 }
