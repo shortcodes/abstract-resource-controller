@@ -72,7 +72,7 @@ abstract class AbstractResourceController extends Controller
                 return $this->getCollection($scout, $page, $length);
             }
 
-            return cache()->remember('scout_query:' . md5($scout->buildPayload()->toJson() . '-' . $page . '-' . $length . '-' . auth()->check() ? auth()->id() : 'none'), $this->cacheable, function () use ($scout, $length, $page) {
+            return cache()->remember('scout_query:' . md5($scout->buildPayload()->toJson() . '-' . $page . '-' . $length . '-' . (auth()->check() ? auth()->id() : 'none')), $this->cacheable, function () use ($scout, $length, $page) {
                 return $this->getCollection($scout, $page, $length)->response(request())->getData(true);
             });
         }
