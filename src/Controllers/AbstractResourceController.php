@@ -89,7 +89,7 @@ abstract class AbstractResourceController extends Controller
 
         $result = null;
 
-        if ($this->pagination && request()->get('pagination', true){
+        if ($this->pagination && request()->get('pagination', true)){
             $result = $searchQuery->paginate(request()->get('length', 10), ['*'], 'page', request()->get('page', 0));
     }
 
