@@ -219,7 +219,7 @@ abstract class AbstractResourceController extends Controller
     private function getCollection($scout, $page, $length)
     {
         $collection = $this->resourceClass::collection(
-            $scout->paginate($length, 'page', $page)
+            $this->pagination ? $scout->paginate($length, 'page', $page) : $scout->get()
         );
 
         if (method_exists($this->model, "addMeta")) {
