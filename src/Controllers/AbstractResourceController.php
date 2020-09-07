@@ -112,7 +112,7 @@ abstract class AbstractResourceController extends Controller
 
             DB::beginTransaction();
 
-            $model = $this->model::create(request()->all());
+            $model = $this->model::create(method_exists($this, "getStoreOnlyConditionResult") && $this->getStoreOnlyConditionResult() && isset($this->onlyKeys) && !empty($this->onlyKeys) ? request()->only($this->onlyKeys) : request()->all()) ;
 
             DB::commit();
 
