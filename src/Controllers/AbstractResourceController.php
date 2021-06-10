@@ -97,7 +97,7 @@ abstract class AbstractResourceController extends Controller
             $result = $searchQuery->get();
         }
 
-        if (isset($this->onIndexLoadRelations)) {
+        if (isset($this->object->onIndexLoadRelations)) {
             $result->load($this->getOnIndexLoadRelations());
         }
 
@@ -224,7 +224,7 @@ abstract class AbstractResourceController extends Controller
     {
         $result = $this->pagination ? $scout->paginate($length, 'page', $page) : $scout->get();
 
-        if (isset($this->onIndexLoadRelations)) {
+        if (isset($this->object->onIndexLoadRelations)) {
             $result->load($this->getOnIndexLoadRelations());
         }
 
