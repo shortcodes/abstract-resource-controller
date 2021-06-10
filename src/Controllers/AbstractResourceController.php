@@ -97,6 +97,10 @@ abstract class AbstractResourceController extends Controller
             $result = $searchQuery->get();
         }
 
+        if (isset($this->onIndexLoadRelations)) {
+            $result->load($this->getOnIndexLoadRelations());
+        }
+
         $collection = $this->resourceClass::collection($result);
 
         if (method_exists($this->model, "addMeta")) {
@@ -219,7 +223,7 @@ abstract class AbstractResourceController extends Controller
     private function getCollection($scout, $page, $length)
     {
         $collection = $this->resourceClass::collection(
-            $this->pagination ? $scout->paginate($length, 'page', $page) : $scout->get()
+            $this->pagination ? $scout->paginate($length, 'page', $page)->load($this->getOnIndexLoadRelations()) : $scout->get()->load($this->getOnIndexLoadRelations())
         );
 
         if (method_exists($this->model, "addMeta")) {
@@ -227,5 +231,10 @@ abstract class AbstractResourceController extends Controller
         }
 
         return $collection;
+    }
+
+    private function getOnIndexLoadRelations()
+    {
+        return $this->object->onIndexLoadRelations ?? [];
     }
 }
